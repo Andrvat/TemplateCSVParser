@@ -11,6 +11,7 @@
 
 static const char BORDER_LEFT_SYMBOL = '[';
 static const char BORDER_RIGHT_SYMBOL = ']';
+static const char TOKENS_DELIMITER = ' ';
 
 template<typename Ch, typename Tr, class Tuple, size_t N>
 class TuplePrinter {
@@ -23,7 +24,7 @@ public:
      */
     static void print(std::basic_ostream<Ch, Tr> &out, const Tuple &t) {
         TuplePrinter<Ch, Tr, Tuple, N - 1>::print(out, t);
-        out << ", " << std::get<N - 1>(t);
+        out << TOKENS_DELIMITER << std::get<N - 1>(t);
     }
 };
 
