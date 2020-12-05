@@ -9,14 +9,17 @@
 class ArgsHandler {
 private:
     size_t argc_;
-    size_t skipLinesNumber_ = 0;
+    int skipLinesNumber_ = 0;
     char delimiter_ = ';';
 public:
-    ArgsHandler(int argc, char*argv[]) {
+    ArgsHandler(int argc, char *argv[]) {
         argc_ = argc;
         if (argc_ >= 2) {
-            char *pEnd;
-            skipLinesNumber_ = strtoul(argv[1], &pEnd, 10);
+            skipLinesNumber_ = std::stoi(argv[1]);
+            if (skipLinesNumber_ < 0) {
+                std::cerr << "Handler: invalid skip lines number! Set default = 0" << std::endl;
+                skipLinesNumber_ = 0;
+            }
         }
         if (argc_ >= 3) {
             delimiter_ = argv[2][0];

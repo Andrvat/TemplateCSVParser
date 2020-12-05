@@ -10,6 +10,7 @@
 #include <sstream>
 #include <locale>
 #include <algorithm>
+#include <stdexcept>
 
 #include "TemplateTuplePrinter.h"
 #include "TemplateTupleReader.h"
@@ -18,38 +19,25 @@ template<typename ...Args>
 class CSVParser {
 private:
     std::ifstream &csvInputStream_;
-    char csvDelimiter_;
+    char csvDelimiter_ = ';';
+    unsigned int csvSkipLinesNumber_ = 0;
 
-    void skipLines(size_t skipLinesNumber) {
+    void skipLines() {
         std::string temporaryString;
-        while (skipLinesNumber != 0) {
+        unsigned int currentLine = csvSkipLinesNumber_;
+        while (currentLine != 0) {
             std::getline(csvInputStream_, temporaryString);
-            --skipLinesNumber;
+            --currentLine;
         }
     }
 
-    void setCSVLocateParams() {
-        std::locale x(std::locale::classic(), new CSVParserCType(csvDelimiter_));
-        csvInputStream_.imbue(x);
-    }
-
-    class CSVParserCType : public std::ctype<char> {
-        mask performedTable[table_size]{};
-    public:
-        CSVParserCType(char delimiter, size_t refs = 0)
-                : std::ctype<char>(&performedTable[0], false, refs) {
-            std::copy_n(classic_table(), table_size, performedTable);
-            performedTable[' '] = lower;
-            performedTable[delimiter] = space;
-        }
-    };
 
 public:
     CSVParser(std::ifstream &inputStream, const size_t skipLinesNumber, const char delimiter) :
             csvInputStream_(inputStream),
-            csvDelimiter_(delimiter) {
-        setCSVLocateParams();
-        skipLines(skipLinesNumber);
+            csvDelimiter_(delimiter),
+            csvSkipLinesNumber_(skipLinesNumber) {
+        skipLines();
     };
 
     template<typename ...IterArgs>
@@ -58,33 +46,96 @@ public:
         std::ifstream &itInputStream_;
         bool itEndOfFile_ = false;
         std::tuple<Args...> *itTuples_;
+        unsigned int itCurrentRow_;
+        std::string itCurrentLine_;
+        char itDelimiter_;
+        std::streampos pos_;
+
+        void setStringStreamLocateParams(std::istringstream &stream) {
+            std::locale loc(std::locale::classic(), new CSVParserCType(itDelimiter_));
+            stream.imbue(loc);
+        }
+
+        class CSVParserCType : public std::ctype<char> {
+            mask performedTable[table_size]{};
+        public:
+            explicit CSVParserCType(char delimiter, size_t refs = 0)
+                    : std::ctype<char>(&performedTable[0], false, refs) {
+                std::copy_n(classic_table(), table_size, performedTable);
+                performedTable[' '] = lower;
+                performedTable[delimiter] = space;
+            }
+        };
 
     public:
 
         friend class CSVParser<IterArgs...>;
 
-        iterator(std::ifstream &itInputStream, const bool itEndOfFile) :
+        iterator(std::ifstream &itInputStream, const bool itEndOfFile, const unsigned int row, const char delimiter) :
                 itInputStream_(itInputStream),
-                itEndOfFile_(itEndOfFile) {
+                itEndOfFile_(itEndOfFile),
+                itCurrentRow_(row),
+                itDelimiter_(delimiter) {
+            itTuples_ = new std::tuple<IterArgs...>;
 
-            if (itEndOfFile_) {
+            if (itEndOfFile_ || itInputStream_.eof()) {
+                itEndOfFile_ = true;
                 return;
             }
 
-            itTuples_ = new std::tuple<IterArgs...>;
+            try {
+                std::getline(itInputStream_, itCurrentLine_);
+                std::istringstream stringStream(itCurrentLine_);
+                setStringStreamLocateParams(stringStream);
+                stringStream >> *itTuples_;
+                ++itCurrentRow_;
+            } catch (std::runtime_error &error) {
+                std::cerr << "CSVParser Iterator: in row " << itCurrentRow_ << ", in column " << error.what()
+                          << " an inappropriate type was encountered!" << std::endl;
+                throw error;
+            } catch (std::length_error &error) {
+                std::cerr << "CSVParser Iterator: in row " << itCurrentRow_
+                          << " " << error.what() << std::endl;
+                throw error;
+            } catch (std::out_of_range &error) {
+                std::cerr << "CSVParser Iterator: in row " << itCurrentRow_
+                          << " " << error.what() << std::endl;
+                ++itCurrentRow_;
+                ++(*this);
+            }
+        }
 
-            if (itInputStream_.eof()) {
-                itEndOfFile_ = true;
-            } else {
-                itInputStream_ >> *itTuples_;
+        ~iterator() {
+            if (!itTuples_) {
+                delete itTuples_;
             }
         }
 
         iterator &operator++() {
-            if (itInputStream_.eof()) {
+            if (itEndOfFile_ || itInputStream_.eof()) {
                 itEndOfFile_ = true;
-            } else {
-                itInputStream_ >> *itTuples_;
+                return *this;
+            }
+
+            try {
+                std::getline(itInputStream_, itCurrentLine_);
+                std::istringstream stringStream(itCurrentLine_);
+                setStringStreamLocateParams(stringStream);
+                stringStream >> *itTuples_;
+                ++itCurrentRow_;
+            } catch (std::runtime_error &error) {
+                std::cerr << "CSVParser Iterator: in row " << itCurrentRow_ << ", in column " << error.what()
+                          << " an inappropriate type was encountered!" << std::endl;
+                throw error;
+            } catch (std::length_error &error) {
+                std::cerr << "CSVParser Iterator: in row " << itCurrentRow_
+                          << " " << error.what() << std::endl;
+                throw error;
+            } catch (std::out_of_range &error) {
+                std::cerr << "CSVParser Iterator: in row " << itCurrentRow_
+                          << " " << error.what() << std::endl;
+                ++itCurrentRow_;
+                ++(*this);
             }
             return *this;
         }
@@ -106,11 +157,11 @@ public:
     };
 
     iterator<Args...> begin() {
-        return iterator<Args...>(csvInputStream_, false);
+        return iterator<Args...>(csvInputStream_, false, csvSkipLinesNumber_ + 1, csvDelimiter_);
     }
 
     iterator<Args...> end() {
-        return iterator<Args...>(csvInputStream_, true);
+        return iterator<Args...>(csvInputStream_, true, UINT_MAX, csvDelimiter_);
     }
 };
 
