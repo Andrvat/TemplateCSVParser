@@ -31,7 +31,6 @@ private:
         }
     }
 
-
 public:
     CSVParser(std::ifstream &inputStream, const size_t skipLinesNumber, const char delimiter) :
             csvInputStream_(inputStream),
@@ -45,11 +44,11 @@ public:
     private:
         std::ifstream &itInputStream_;
         bool itEndOfFile_ = false;
-        std::tuple<Args...> *itTuples_;
+        std::tuple<Args...> *itTuples_ = nullptr;
         unsigned int itCurrentRow_;
         std::string itCurrentLine_;
         char itDelimiter_;
-        std::streampos pos_;
+        std::streampos itPos_;
 
         void setStringStreamLocateParams(std::istringstream &stream) {
             std::locale loc(std::locale::classic(), new CSVParserCType(itDelimiter_));
@@ -57,7 +56,9 @@ public:
         }
 
         class CSVParserCType : public std::ctype<char> {
+        private:
             mask performedTable[table_size]{};
+
         public:
             explicit CSVParserCType(char delimiter, size_t refs = 0)
                     : std::ctype<char>(&performedTable[0], false, refs) {
@@ -68,7 +69,6 @@ public:
         };
 
     public:
-
         friend class CSVParser<IterArgs...>;
 
         iterator(std::ifstream &itInputStream, const bool itEndOfFile, const unsigned int row, const char delimiter) :
@@ -76,15 +76,19 @@ public:
                 itEndOfFile_(itEndOfFile),
                 itCurrentRow_(row),
                 itDelimiter_(delimiter) {
+
             itTuples_ = new std::tuple<IterArgs...>;
 
-            if (itEndOfFile_ || itInputStream_.eof()) {
+            if (itEndOfFile_ || itPos_ == EOF) {
                 itEndOfFile_ = true;
                 return;
             }
 
             try {
-                std::getline(itInputStream_, itCurrentLine_);
+                itInputStream_.clear();
+                itInputStream_.seekg(itPos_);
+                itInputStream_ >> itCurrentLine_;
+                itPos_ = itInputStream_.tellg();
                 std::istringstream stringStream(itCurrentLine_);
                 setStringStreamLocateParams(stringStream);
                 stringStream >> *itTuples_;
@@ -94,10 +98,12 @@ public:
                           << " an inappropriate type was encountered!" << std::endl;
                 throw error;
             } catch (std::length_error &error) {
+                // less data was encountered than expected
                 std::cerr << "CSVParser Iterator: in row " << itCurrentRow_
                           << " " << error.what() << std::endl;
                 throw error;
             } catch (std::out_of_range &error) {
+                // more data was encountered than expected
                 std::cerr << "CSVParser Iterator: in row " << itCurrentRow_
                           << " " << error.what() << std::endl;
                 ++itCurrentRow_;
@@ -106,19 +112,20 @@ public:
         }
 
         ~iterator() {
-            if (!itTuples_) {
-                delete itTuples_;
-            }
+            delete itTuples_;
         }
 
         iterator &operator++() {
-            if (itEndOfFile_ || itInputStream_.eof()) {
+            if (itEndOfFile_ || itPos_ == EOF) {
                 itEndOfFile_ = true;
                 return *this;
             }
 
             try {
-                std::getline(itInputStream_, itCurrentLine_);
+                itInputStream_.clear();
+                itInputStream_.seekg(itPos_);
+                itInputStream_ >> itCurrentLine_;
+                itPos_ = itInputStream_.tellg();
                 std::istringstream stringStream(itCurrentLine_);
                 setStringStreamLocateParams(stringStream);
                 stringStream >> *itTuples_;
@@ -128,10 +135,12 @@ public:
                           << " an inappropriate type was encountered!" << std::endl;
                 throw error;
             } catch (std::length_error &error) {
+                // less data was encountered than expected
                 std::cerr << "CSVParser Iterator: in row " << itCurrentRow_
                           << " " << error.what() << std::endl;
                 throw error;
             } catch (std::out_of_range &error) {
+                // more data was encountered than expected
                 std::cerr << "CSVParser Iterator: in row " << itCurrentRow_
                           << " " << error.what() << std::endl;
                 ++itCurrentRow_;
@@ -157,6 +166,8 @@ public:
     };
 
     iterator<Args...> begin() {
+        csvInputStream_.clear();
+        csvInputStream_.seekg(0);
         return iterator<Args...>(csvInputStream_, false, csvSkipLinesNumber_ + 1, csvDelimiter_);
     }
 
