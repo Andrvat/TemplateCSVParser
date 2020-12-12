@@ -14,6 +14,7 @@
 
 #include "TemplateTuplePrinter.h"
 #include "TemplateTupleReader.h"
+#include "CSVParserException.h"
 
 template<typename ...Args>
 class CSVParser {
@@ -39,8 +40,7 @@ public:
         skipLines();
     };
 
-    template<typename ...IterArgs>
-    class iterator : public std::iterator<std::input_iterator_tag, std::tuple<IterArgs...>> {
+    class iterator : public std::iterator<std::input_iterator_tag, std::tuple<Args...>> {
     private:
         std::ifstream &itInputStream_;
         bool itEndOfFile_ = false;
@@ -68,22 +68,7 @@ public:
             }
         };
 
-    public:
-        friend class CSVParser<IterArgs...>;
-
-        iterator(std::ifstream &itInputStream, const bool itEndOfFile, const unsigned int row, const char delimiter) :
-                itInputStream_(itInputStream),
-                itEndOfFile_(itEndOfFile),
-                itCurrentRow_(row),
-                itDelimiter_(delimiter) {
-
-            itTuples_ = new std::tuple<IterArgs...>;
-
-            if (itEndOfFile_ || itPos_ == EOF) {
-                itEndOfFile_ = true;
-                return;
-            }
-
+        void readNextTuple() {
             try {
                 itInputStream_.clear();
                 itInputStream_.seekg(itPos_);
@@ -93,22 +78,46 @@ public:
                 setStringStreamLocateParams(stringStream);
                 stringStream >> *itTuples_;
                 ++itCurrentRow_;
-            } catch (std::runtime_error &error) {
-                std::cerr << "CSVParser Iterator: in row " << itCurrentRow_ << ", in column " << error.what()
-                          << " an inappropriate type was encountered!" << std::endl;
-                throw error;
-            } catch (std::length_error &error) {
-                // less data was encountered than expected
-                std::cerr << "CSVParser Iterator: in row " << itCurrentRow_
-                          << " " << error.what() << std::endl;
-                throw error;
-            } catch (std::out_of_range &error) {
-                // more data was encountered than expected
-                std::cerr << "CSVParser Iterator: in row " << itCurrentRow_
-                          << " " << error.what() << std::endl;
-                ++itCurrentRow_;
-                ++(*this);
+            } catch (CSVParserException &exception) {
+                switch (exception.getErrorType()) {
+                    case ExceptionType::InvalidData:
+                        std::cerr << "CSVParser Iterator: in row " << itCurrentRow_ << ", in column "
+                                  << exception.getErrorColumn()
+                                  << " an inappropriate type was encountered!" << std::endl;
+                        throw std::runtime_error("");
+                    case ExceptionType::DataOverflow:
+                        // less data was encountered than expected
+                        std::cerr << "CSVParser Iterator: in row " << itCurrentRow_
+                                  << " " << exception.what() << std::endl;
+                        throw std::runtime_error("");
+                    case ExceptionType::DataUnderflow:
+                        // more data was encountered than expected
+                        std::cerr << "CSVParser Iterator: in row " << itCurrentRow_
+                                  << " " << exception.what() << std::endl;
+                        ++itCurrentRow_;
+                        ++(*this);
+                        break;
+                }
             }
+        }
+
+    public:
+        friend class CSVParser<Args...>;
+
+        iterator(std::ifstream &itInputStream, const bool itEndOfFile, const unsigned int row, const char delimiter) :
+                itInputStream_(itInputStream),
+                itEndOfFile_(itEndOfFile),
+                itCurrentRow_(row),
+                itDelimiter_(delimiter) {
+
+            itTuples_ = new std::tuple<Args...>;
+
+            if (itEndOfFile_ || itPos_ == EOF) {
+                itEndOfFile_ = true;
+                return;
+            }
+
+            readNextTuple();
         }
 
         ~iterator() {
@@ -121,31 +130,7 @@ public:
                 return *this;
             }
 
-            try {
-                itInputStream_.clear();
-                itInputStream_.seekg(itPos_);
-                itInputStream_ >> itCurrentLine_;
-                itPos_ = itInputStream_.tellg();
-                std::istringstream stringStream(itCurrentLine_);
-                setStringStreamLocateParams(stringStream);
-                stringStream >> *itTuples_;
-                ++itCurrentRow_;
-            } catch (std::runtime_error &error) {
-                std::cerr << "CSVParser Iterator: in row " << itCurrentRow_ << ", in column " << error.what()
-                          << " an inappropriate type was encountered!" << std::endl;
-                throw error;
-            } catch (std::length_error &error) {
-                // less data was encountered than expected
-                std::cerr << "CSVParser Iterator: in row " << itCurrentRow_
-                          << " " << error.what() << std::endl;
-                throw error;
-            } catch (std::out_of_range &error) {
-                // more data was encountered than expected
-                std::cerr << "CSVParser Iterator: in row " << itCurrentRow_
-                          << " " << error.what() << std::endl;
-                ++itCurrentRow_;
-                ++(*this);
-            }
+            readNextTuple();
             return *this;
         }
 
@@ -165,14 +150,14 @@ public:
         }
     };
 
-    iterator<Args...> begin() {
+    iterator begin() {
         csvInputStream_.clear();
         csvInputStream_.seekg(0);
-        return iterator<Args...>(csvInputStream_, false, csvSkipLinesNumber_ + 1, csvDelimiter_);
+        return iterator(csvInputStream_, false, csvSkipLinesNumber_ + 1, csvDelimiter_);
     }
 
-    iterator<Args...> end() {
-        return iterator<Args...>(csvInputStream_, true, UINT_MAX, csvDelimiter_);
+    iterator end() {
+        return iterator(csvInputStream_, true, UINT_MAX, csvDelimiter_);
     }
 };
 

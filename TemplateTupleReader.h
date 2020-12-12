@@ -11,18 +11,21 @@
 #include <fstream>
 #include <stdexcept>
 
+#include "CSVParserException.h"
+
 template<typename First>
 std::tuple<First> readTuple(std::istringstream &stream, unsigned int &column) {
     if (stream.eof()) {
-        throw std::length_error("less data was encountered than expected.");
+        throw CSVParserException("less data was encountered than expected.", column, ExceptionType::DataUnderflow);
     }
     First inputData;
     stream >> inputData;
     if (stream.fail()) {
-        throw std::runtime_error(std::to_string(column));
+        throw CSVParserException("", column, ExceptionType::InvalidData);
     }
     if (!stream.eof()) {
-        throw std::out_of_range("more data was encountered than expected. This line will be skipped...");
+        throw CSVParserException("more data was encountered than expected. This line will be skipped...", column,
+                                 ExceptionType::DataOverflow);
     }
     ++column;
     return std::make_tuple(inputData);
@@ -31,12 +34,12 @@ std::tuple<First> readTuple(std::istringstream &stream, unsigned int &column) {
 template<typename First, typename Second, typename ...Args>
 std::tuple<First, Second, Args...> readTuple(std::istringstream &stream, unsigned int &column) {
     if (stream.eof()) {
-        throw std::length_error("less data was encountered than expected.");
+        throw CSVParserException("less data was encountered than expected.", column, ExceptionType::DataUnderflow);
     }
     First inputData;
     stream >> inputData;
     if (stream.fail()) {
-        throw std::runtime_error(std::to_string(column));
+        throw CSVParserException("", column, ExceptionType::InvalidData);
     }
     ++column;
     return std::tuple_cat(std::make_tuple(inputData),

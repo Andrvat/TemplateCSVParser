@@ -86,6 +86,9 @@
 		<Unit filename="C:/Users/user/CppLabs/ImprovedTemplateCSVParser/CSVParser.h">
 			<Option target="ImprovedTemplateCSVParser"/>
 		</Unit>
+		<Unit filename="C:/Users/user/CppLabs/ImprovedTemplateCSVParser/CSVParserException.h">
+			<Option target="ImprovedTemplateCSVParser"/>
+		</Unit>
 		<Unit filename="C:/Users/user/CppLabs/ImprovedTemplateCSVParser/TemplateTuplePrinter.h">
 			<Option target="ImprovedTemplateCSVParser"/>
 		</Unit>
