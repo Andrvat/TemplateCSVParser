@@ -59,6 +59,8 @@ fstream
 -
 stdexcept
 -
+type_traits
+-
 CSVParserException.h
 C:/Users/user/CppLabs/TemplateCSVParser/CSVParserException.h
 

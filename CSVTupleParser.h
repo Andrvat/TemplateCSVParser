@@ -16,6 +16,7 @@
 #include "TemplateTupleReader.h"
 #include "CSVParserException.h"
 
+
 namespace CSVParser {
 
     static const char DEFAULT_CSV_DELIMITER = ';';
@@ -37,6 +38,10 @@ namespace CSVParser {
                 std::getline(csvInputStream_, temporaryString);
                 --currentLine;
             }
+        }
+
+        size_t getStartingRowsForIterationNumber() {
+            return csvLinesToSkipNumber_ + 1;
         }
 
     public:
@@ -82,17 +87,20 @@ namespace CSVParser {
                 throw std::runtime_error("");
             }
 
-            void printAboutInvalidDataAndThrowRuntimeException(const CSVParserException &exception) {
+            void printAboutInvalidDataFromException(const CSVParserException &exception) {
                 std::cerr << "CSVTupleParser Iterator: in row " << itCurrentRow_
                           << ", in column " << exception.getErrorColumn()
                           << " an inappropriate type was encountered!" << std::endl;
-                throwRuntimeExceptionToStopProgram();
             }
 
-            void printAboutDataOverflowAndThrowRuntimeException(const CSVParserException &exception) {
+            void printAboutDataUnderflowFromException(const CSVParserException &exception) {
                 std::cerr << "CSVTupleParser Iterator: in row " << itCurrentRow_
                           << " " << exception.what() << std::endl;
-                throwRuntimeExceptionToStopProgram();
+            }
+
+            void printWarningAboutDataOverflow(const CSVParserException &exception) {
+                std::cerr << "CSVTupleParser Iterator: in row " << itCurrentRow_
+                          << " " << exception.what() << std::endl;
             }
 
             void readNextFileRowToCurrentLineAndSaveStreamPosition() {
@@ -102,36 +110,45 @@ namespace CSVParser {
                 itPos_ = itInputStream_.tellg();
             }
 
+            void continueIterations() {
+                ++itCurrentRow_;
+                ++(*this);
+            }
+
             void readNextTuple() {
                 try {
                     readNextFileRowToCurrentLineAndSaveStreamPosition();
                     std::istringstream stringStream(itCurrentLine_);
                     setStringStreamLocateParams(stringStream);
-                    *itTuples_ = getCsvFileCurrentRowsTuple<Args...>(stringStream, itEscapeSymbol_);
+                    *itTuples_ = TupleOperators::getCsvFileCurrentRowsTuple<Args...>(stringStream, itEscapeSymbol_, itDelimiter_);
                     ++itCurrentRow_;
                 } catch (CSVParserException &exception) {
                     switch (exception.getErrorType()) {
                         case ExceptionType::InvalidData:
-                            printAboutInvalidDataAndThrowRuntimeException(exception);
-                        case ExceptionType::DataOverflow:
-                            printAboutDataOverflowAndThrowRuntimeException(exception);
+                            printAboutInvalidDataFromException(exception);
+                            throwRuntimeExceptionToStopProgram();
+                            break;
                         case ExceptionType::DataUnderflow:
-                            std::cerr << "CSVTupleParser Iterator: in row " << itCurrentRow_
-                                      << " " << exception.what() << std::endl;
-                            ++itCurrentRow_;
-                            ++(*this);
+                            printAboutDataUnderflowFromException(exception);
+                            throwRuntimeExceptionToStopProgram();
+                            break;
+                        case ExceptionType::DataOverflow:
+                            printWarningAboutDataOverflow(exception);
+                            continueIterations();
                             break;
                     }
                 }
             }
 
+            [[nodiscard]] bool isCsvInputStreamReachedEndOfFile() const {
+                return itPos_ == EOF;
+            }
+
         public:
             friend class CSVTupleParser<Args...>;
 
-            iterator(std::ifstream &itInputStream, const bool itEndOfFile,
-                     const unsigned int row, const char delimiter,
-                     const char escapeSymbol,
-                     const std::streampos streamPosition) :
+            iterator(std::ifstream &itInputStream, const bool itEndOfFile, const unsigned int row,
+                     const char delimiter, const char escapeSymbol, const std::streampos streamPosition) :
                     itInputStream_(itInputStream),
                     itEndOfFile_(itEndOfFile),
                     itCurrentRow_(row),
@@ -140,7 +157,7 @@ namespace CSVParser {
                     itPos_(streamPosition) {
 
                 itTuples_ = new std::tuple<Args...>;
-                if (itEndOfFile_ || itPos_ == EOF) {
+                if (isCsvInputStreamReachedEndOfFile()) {
                     itEndOfFile_ = true;
                     return;
                 }
@@ -152,7 +169,7 @@ namespace CSVParser {
             }
 
             iterator &operator++() {
-                if (itEndOfFile_ || itPos_ == EOF) {
+                if (isCsvInputStreamReachedEndOfFile()) {
                     itEndOfFile_ = true;
                     return *this;
                 }
@@ -164,7 +181,7 @@ namespace CSVParser {
                 if (other.itEndOfFile_ && this->itEndOfFile_) {
                     return true;
                 }
-                return (*itTuples_ == *other.itTuples_);
+                return itCurrentLine_ == other.itCurrentLine_;
             }
 
             bool operator!=(const iterator &other) const {
@@ -177,13 +194,12 @@ namespace CSVParser {
         };
 
         iterator begin() {
-            return iterator(csvInputStream_, false, csvLinesToSkipNumber_ + 1, csvDelimiter_, csvEscapeSymbol_,
-                            csvInputStream_.tellg());
+            return iterator(csvInputStream_, false, getStartingRowsForIterationNumber(),
+                            csvDelimiter_, csvEscapeSymbol_, csvInputStream_.tellg());
         }
 
         iterator end() {
-            return iterator(csvInputStream_, true, UINT_MAX, csvDelimiter_, csvEscapeSymbol_,
-                            csvInputStream_.tellg());
+            return iterator(csvInputStream_, true, UINT_MAX, csvDelimiter_, csvEscapeSymbol_, EOF);
         }
     };
 

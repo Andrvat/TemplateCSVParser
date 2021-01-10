@@ -8,7 +8,7 @@
 #include <tuple>
 #include <iostream>
 
-namespace CSVParser {
+namespace TupleOperators {
 
     static const char BORDER_LEFT_SYMBOL = '[';
     static const char BORDER_RIGHT_SYMBOL = ']';
@@ -29,9 +29,9 @@ namespace CSVParser {
         }
     };
 
-/*
- * Class-stopping print template std::tuple recursion
- */
+    /*
+     * Class-stopping print template std::tuple recursion
+     */
     template<typename Ch, typename Tr, class Tuple>
     class TuplePrinter<Ch, Tr, Tuple, 1> {
     public:

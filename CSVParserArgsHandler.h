@@ -16,7 +16,6 @@ namespace CSVParser {
         INVALID_ARGUMENTS
     };
 
-    // TODO: Initialization of these strings with static storage duration may throw an exception that cannot be caught
     static const std::string CSV_HANDLER_INDICATOR = "Handler:";
     static const std::string CSV_VALIDATOR_INDICATOR = "Validator:";
     static const std::string INVALID_ARGUMENTS_AMOUNT_MESSAGE = "In configurations there were invalid arguments than expected!";
@@ -25,7 +24,6 @@ namespace CSVParser {
     static const std::string INVALID_ESCAPE_SYMBOL_MESSAGE = "Invalid escape symbol!";
     static const std::string INVALID_SOURCE_FILE_NAME_MESSAGE = "Invalid source file name! File can't be opened!";
     static const std::string SET_DEFAULT_NUMBER_MESSAGE = "Set default:";
-    static const std::string LINES_TO_SKIP_NUMBER_VAR_INDICATOR = "Lines to skip number:";
 
     static const int ARGS_VALUE_DELIMITER_STRING_LENGTH = 1;
 
@@ -100,7 +98,7 @@ namespace CSVParser {
                           << std::endl;
             }
 
-            static void printInfoAboutInvalidSourceFileName() {
+            static void printInfoAboutUnableToOpenSourceFile() {
                 std::cerr << CSV_HANDLER_INDICATOR << " "
                           << CSV_VALIDATOR_INDICATOR << " "
                           << INVALID_SOURCE_FILE_NAME_MESSAGE
@@ -127,12 +125,14 @@ namespace CSVParser {
 
         void setSourceFileName(char *argumentsValues[]) {
             if (parserConfigurationIndicator_ == CSVParserConfigsArgumentsAmount::INVALID_ARGUMENTS) {
-                DataValidator::printInfoAboutInvalidSourceFileName();
+                DataValidator::printInfoAboutUnableToOpenSourceFile();
                 throw std::invalid_argument(CSV_HANDLER_INDICATOR);
             }
-            std::string sourceFileNameFromConfigs(argumentsValues[1]);
+            size_t possibleSourceFileNameArgsValuesIndex =
+                    static_cast<int>(CSVParserConfigsArgumentsAmount::NO_SPECIFIED_ALL_FEATURES) - 1;
+            std::string sourceFileNameFromConfigs(argumentsValues[possibleSourceFileNameArgsValuesIndex]);
             if (!DataValidator::isFileWithSourceFileNameCanBeOpened(sourceFileNameFromConfigs)) {
-                DataValidator::printInfoAboutInvalidSourceFileName();
+                DataValidator::printInfoAboutUnableToOpenSourceFile();
                 throw std::invalid_argument(CSV_HANDLER_INDICATOR);
             } else {
                 sourceFileName_ = sourceFileNameFromConfigs;
@@ -166,11 +166,7 @@ namespace CSVParser {
                     }
                     break;
                 default:
-                    std::cerr << CSV_HANDLER_INDICATOR << " "
-                              << LINES_TO_SKIP_NUMBER_VAR_INDICATOR << " "
-                              << SET_DEFAULT_NUMBER_MESSAGE << " "
-                              << DEFAULT_LINES_TO_SKIP_NUMBER
-                              << std::endl;
+                    DataValidator::printInfoAboutSettingDefaultLinesToSkipNumber();
                     linesToSkipNumber_ = DEFAULT_LINES_TO_SKIP_NUMBER;
 
 
@@ -230,4 +226,11 @@ namespace CSVParser {
         }
     };
 
+    void initHandlerParams(CSVParserArgsHandler &handler, const int argumentsAmount, char *argumentValues[]) {
+        handler.setArgumentsAmount(argumentsAmount);
+        handler.setSourceFileName(argumentValues);
+        handler.setLinesToSkipNumber(argumentValues);
+        handler.setCsvDelimiter(argumentValues);
+        handler.setCsvEscapeSymbol(argumentValues);
+    }
 }
