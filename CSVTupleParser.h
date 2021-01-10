@@ -107,7 +107,7 @@ namespace CSVParser {
                     readNextFileRowToCurrentLineAndSaveStreamPosition();
                     std::istringstream stringStream(itCurrentLine_);
                     setStringStreamLocateParams(stringStream);
-                    stringStream >> *itTuples_;
+                    *itTuples_ = getCsvFileCurrentRowsTuple<Args...>(stringStream, itEscapeSymbol_);
                     ++itCurrentRow_;
                 } catch (CSVParserException &exception) {
                     switch (exception.getErrorType()) {
