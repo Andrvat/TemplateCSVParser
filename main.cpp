@@ -1,26 +1,39 @@
 #include <iostream>
 
 #include "TemplateTuplePrinter.h"
-#include "CSVParser.h"
-#include "ArgsHandler.h"
+#include "CSVTupleParser.h"
+#include "CSVParserArgsHandler.h"
+
+using namespace CSVParser;
 
 int main(int argc, char *argv[]) {
-    std::ifstream inputFileStream;
-    inputFileStream.open("input.csv", std::ios::binary);
+    static const std::string MAIN_INDICATOR = "Main:";
+    static const std::string STOP_PROGRAM_MESSAGE = "program stopped!";
     std::freopen("log.txt", "w", stderr);
 
-    ArgsHandler handler(argc, argv);
-    CSVParser<int, long, double, double, std::string, int> parser(inputFileStream,
-                                                                          handler.getSkipLinesNumber(),
-                                                                          handler.getDelimiter());
+    CSVParser::CSVParserArgsHandler handler;
+    try {
+        handler.setArgumentsAmount(argc);
+        handler.setSourceFileName(argv);
+        handler.setLinesToSkipNumber(argv);
+        handler.setCsvDelimiter(argv);
+        handler.setCsvEscapeSymbol(argv);
+    } catch (std::exception &e) {
+        std::cerr << MAIN_INDICATOR << " " << STOP_PROGRAM_MESSAGE << std::endl;
+        return EXIT_SUCCESS;
+    }
+    std::ifstream inputFileStream;
+    inputFileStream.open(handler.getSourceFileName(), std::ios::binary);
+    CSVParser::CSVTupleParser<int, long, double, double, std::string> parser(inputFileStream,
+                                                                             handler.getLinesToSkipNumber(),
+                                                                             handler.getCsvDelimiter(),
+                                                                             handler.getCsvEscapeSymbol());
     try {
         for (auto &it : parser) {
-            auto test = parser.begin();
-            ++test;
             std::cout << it << std::endl;
         }
     } catch (std::exception &e) {
-        std::cerr << "Main: program stopped!" << std::endl;
+        std::cerr << MAIN_INDICATOR << " " << STOP_PROGRAM_MESSAGE << std::endl;
     }
-    return 0;
+    return EXIT_SUCCESS;
 }

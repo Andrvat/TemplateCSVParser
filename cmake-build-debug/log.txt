@@ -1,2 +1,0 @@
-CSVParser Iterator: in row 4, in column 2 an inappropriate type was encountered!
-Main: program stopped!

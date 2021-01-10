@@ -4,7 +4,7 @@ set(CMAKE_DEPENDS_LANGUAGES
   )
 # The set of files for implicit dependencies of each language:
 set(CMAKE_DEPENDS_CHECK_CXX
-  "C:/Users/user/CppLabs/ImprovedTemplateCSVParser/main.cpp" "C:/Users/user/CppLabs/ImprovedTemplateCSVParser/cmake-build-debug/CMakeFiles/ImprovedTemplateCSVParser.dir/main.cpp.obj"
+  "C:/Users/user/CppLabs/TemplateCSVParser/main.cpp" "C:/Users/user/CppLabs/TemplateCSVParser/cmake-build-debug/CMakeFiles/ImprovedTemplateCSVParser.dir/main.cpp.obj"
   )
 set(CMAKE_CXX_COMPILER_ID "GNU")
 

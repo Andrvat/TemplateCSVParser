@@ -6,36 +6,40 @@
 #include <exception>
 #include <string>
 
-enum class ExceptionType {
-    InvalidData,
-    DataOverflow,
-    DataUnderflow
-};
+namespace CSVParser {
 
-class CSVParserException : public std::exception {
+    enum class ExceptionType {
+        InvalidData,
+        DataOverflow,
+        DataUnderflow
+    };
 
-private:
-    ExceptionType errorType_;
-    std::string errorMessage_;
-    unsigned int currentErrorColumn_ = 0;
-public:
-    CSVParserException() = default;
+    class CSVParserException : public std::exception {
 
-    explicit CSVParserException(const std::string &errorMessage, const unsigned int column, ExceptionType type) {
-        errorMessage_ = errorMessage;
-        currentErrorColumn_ = column;
-        errorType_ = type;
-    }
+    private:
+        ExceptionType errorType_;
+        std::string errorMessage_;
+        unsigned int currentErrorColumn_ = 0;
+    public:
+        CSVParserException() = default;
 
-    [[nodiscard]] const char *what() const noexcept override {
-        return errorMessage_.c_str();
-    }
+        explicit CSVParserException(const std::string &errorMessage, const unsigned int column, ExceptionType type) {
+            errorMessage_ = errorMessage;
+            currentErrorColumn_ = column;
+            errorType_ = type;
+        }
 
-    [[nodiscard]] unsigned int getErrorColumn() const noexcept {
-        return currentErrorColumn_;
-    }
+        [[nodiscard]] const char *what() const noexcept override {
+            return errorMessage_.c_str();
+        }
 
-    [[nodiscard]] ExceptionType getErrorType() const noexcept {
-        return errorType_;
-    }
-};
+        [[nodiscard]] unsigned int getErrorColumn() const noexcept {
+            return currentErrorColumn_;
+        }
+
+        [[nodiscard]] ExceptionType getErrorType() const noexcept {
+            return errorType_;
+        }
+    };
+
+}

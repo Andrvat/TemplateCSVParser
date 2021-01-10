@@ -13,42 +13,48 @@
 
 #include "CSVParserException.h"
 
-template<typename First>
-std::tuple<First> readTuple(std::istringstream &stream, unsigned int &column) {
-    if (stream.eof()) {
-        throw CSVParserException("less data was encountered than expected.", column, ExceptionType::DataUnderflow);
-    }
-    First inputData;
-    stream >> inputData;
-    if (stream.fail()) {
-        throw CSVParserException("", column, ExceptionType::InvalidData);
-    }
-    if (!stream.eof()) {
-        throw CSVParserException("more data was encountered than expected. This line will be skipped...", column,
-                                 ExceptionType::DataOverflow);
-    }
-    ++column;
-    return std::make_tuple(inputData);
-}
+namespace CSVParser {
 
-template<typename First, typename Second, typename ...Args>
-std::tuple<First, Second, Args...> readTuple(std::istringstream &stream, unsigned int &column) {
-    if (stream.eof()) {
-        throw CSVParserException("less data was encountered than expected.", column, ExceptionType::DataUnderflow);
+    template<typename First>
+    std::tuple<First> readTuple(std::istringstream &stream, unsigned int &column) {
+        if (stream.eof()) {
+            throw CSVParser::CSVParserException("less data was encountered than expected.", column,
+                                                CSVParser::ExceptionType::DataUnderflow);
+        }
+        First inputData;
+        stream >> inputData;
+        if (stream.fail()) {
+            throw CSVParser::CSVParserException("", column, CSVParser::ExceptionType::InvalidData);
+        }
+        if (!stream.eof()) {
+            throw CSVParser::CSVParserException("more data was encountered than expected. This line will be skipped...",
+                                                column,
+                                                CSVParser::ExceptionType::DataOverflow);
+        }
+        ++column;
+        return std::make_tuple(inputData);
     }
-    First inputData;
-    stream >> inputData;
-    if (stream.fail()) {
-        throw CSVParserException("", column, ExceptionType::InvalidData);
-    }
-    ++column;
-    return std::tuple_cat(std::make_tuple(inputData),
-                          readTuple<Second, Args...>(stream, column));
-}
 
-template<typename ...Args>
-auto &operator>>(std::istringstream &stream, std::tuple<Args...> &tuple) {
-    unsigned int currentColumn = 1;
-    tuple = readTuple<Args...>(stream, currentColumn);
-    return stream;
+    template<typename First, typename Second, typename ...Args>
+    std::tuple<First, Second, Args...> readTuple(std::istringstream &stream, unsigned int &column) {
+        if (stream.eof()) {
+            throw CSVParser::CSVParserException("less data was encountered than expected.", column,
+                                                CSVParser::ExceptionType::DataUnderflow);
+        }
+        First inputData;
+        stream >> inputData;
+        if (stream.fail()) {
+            throw CSVParser::CSVParserException("", column, CSVParser::ExceptionType::InvalidData);
+        }
+        ++column;
+        return std::tuple_cat(std::make_tuple(inputData),
+                              readTuple<Second, Args...>(stream, column));
+    }
+
+    template<typename ...Args>
+    auto &operator>>(std::istringstream &stream, std::tuple<Args...> &tuple) {
+        unsigned int currentColumn = 0;
+        tuple = readTuple<Args...>(stream, currentColumn);
+        return stream;
+    }
 }

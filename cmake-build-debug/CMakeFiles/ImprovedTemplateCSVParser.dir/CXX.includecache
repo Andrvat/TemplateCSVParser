@@ -6,11 +6,17 @@
 
 #IncludeRegexTransform: 
 
-C:/Users/user/CppLabs/ImprovedTemplateCSVParser/ArgsHandler.h
+C:/Users/user/CppLabs/TemplateCSVParser/CSVParserArgsHandler.h
 string
 -
 
-C:/Users/user/CppLabs/ImprovedTemplateCSVParser/CSVParser.h
+C:/Users/user/CppLabs/TemplateCSVParser/CSVParserException.h
+exception
+-
+string
+-
+
+C:/Users/user/CppLabs/TemplateCSVParser/CSVTupleParser.h
 fstream
 -
 vector
@@ -26,11 +32,13 @@ algorithm
 stdexcept
 -
 TemplateTuplePrinter.h
-C:/Users/user/CppLabs/ImprovedTemplateCSVParser/TemplateTuplePrinter.h
+C:/Users/user/CppLabs/TemplateCSVParser/TemplateTuplePrinter.h
 TemplateTupleReader.h
-C:/Users/user/CppLabs/ImprovedTemplateCSVParser/TemplateTupleReader.h
+C:/Users/user/CppLabs/TemplateCSVParser/TemplateTupleReader.h
+CSVParserException.h
+C:/Users/user/CppLabs/TemplateCSVParser/CSVParserException.h
 
-C:/Users/user/CppLabs/ImprovedTemplateCSVParser/TemplateTuplePrinter.h
+C:/Users/user/CppLabs/TemplateCSVParser/TemplateTuplePrinter.h
 cstdio
 -
 tuple
@@ -38,7 +46,7 @@ tuple
 iostream
 -
 
-C:/Users/user/CppLabs/ImprovedTemplateCSVParser/TemplateTupleReader.h
+C:/Users/user/CppLabs/TemplateCSVParser/TemplateTupleReader.h
 iostream
 -
 tuple
@@ -51,14 +59,16 @@ fstream
 -
 stdexcept
 -
+CSVParserException.h
+C:/Users/user/CppLabs/TemplateCSVParser/CSVParserException.h
 
-C:/Users/user/CppLabs/ImprovedTemplateCSVParser/main.cpp
+C:/Users/user/CppLabs/TemplateCSVParser/main.cpp
 iostream
 -
 TemplateTuplePrinter.h
-C:/Users/user/CppLabs/ImprovedTemplateCSVParser/TemplateTuplePrinter.h
-CSVParser.h
-C:/Users/user/CppLabs/ImprovedTemplateCSVParser/CSVParser.h
-ArgsHandler.h
-C:/Users/user/CppLabs/ImprovedTemplateCSVParser/ArgsHandler.h
+C:/Users/user/CppLabs/TemplateCSVParser/TemplateTuplePrinter.h
+CSVTupleParser.h
+C:/Users/user/CppLabs/TemplateCSVParser/CSVTupleParser.h
+CSVParserArgsHandler.h
+C:/Users/user/CppLabs/TemplateCSVParser/CSVParserArgsHandler.h
 
