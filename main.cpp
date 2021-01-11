@@ -13,7 +13,7 @@ void redirectStandardErrorStreamToFileStream(const char *filename) {
     std::freopen(filename, "w", stderr);
 }
 
-void printInfoAboutStoppingProgram() {
+void printAboutStoppingProgram() {
     std::cerr << MAIN_INDICATOR << " " << STOP_PROGRAM_MESSAGE << std::endl;
 }
 
@@ -24,7 +24,7 @@ int main(int argc, char *argv[]) {
     try {
         CSVParser::initHandlerParams(handler, argc, argv);
     } catch (std::exception &e) {
-        printInfoAboutStoppingProgram();
+        printAboutStoppingProgram();
         return EXIT_SUCCESS;
     }
 
@@ -39,7 +39,7 @@ int main(int argc, char *argv[]) {
             std::cout << it << std::endl;
         }
     } catch (std::exception &e) {
-        printInfoAboutStoppingProgram();
+        printAboutStoppingProgram();
     }
     return EXIT_SUCCESS;
 }
