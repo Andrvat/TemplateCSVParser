@@ -93,20 +93,22 @@ namespace TupleOperators {
 
     void readFullValueContainingEscapesSymbol(std::string &data, std::istringstream &stream,
                                               TupleReaderParams &readerParams) {
-        if (!stream.eof()) {
+        if (stream.eof()) {
+            return;
+        }
+
+        skipSymbols(stream, NEEDED_NUMBER_SKIPPED_SYMBOLS_FOR_SCREENING);
+        while (isNextStreamSymbolEqualEscape(stream, readerParams.getEscapeSymbol())) {
+            throwExceptionIfEndOfFileMetEarlierThanShouldBe(stream, readerParams.getColumn());
+            size_t lastSymbolStringIndex = data.size() - 1;
+            data[lastSymbolStringIndex] = readerParams.getDelimiter();
+            std::string extraData;
             skipSymbols(stream, NEEDED_NUMBER_SKIPPED_SYMBOLS_FOR_SCREENING);
-            while (isNextStreamSymbolEqualEscape(stream, readerParams.getEscapeSymbol())) {
-                throwExceptionIfEndOfFileMetEarlierThanShouldBe(stream, readerParams.getColumn());
-                size_t lastSymbolStringIndex = data.size() - 1;
-                data[lastSymbolStringIndex] = readerParams.getDelimiter();
-                std::string extraData;
-                skipSymbols(stream, NEEDED_NUMBER_SKIPPED_SYMBOLS_FOR_SCREENING);
-                stream >> extraData;
-                throwExceptionIfStreamFailedAfterReadingInputData(stream, readerParams.getColumn());
-                data += extraData;
-                if (!isThereAnyFurtherEscapeSymbols(stream, readerParams.getEscapeSymbol())) {
-                    break;
-                }
+            stream >> extraData;
+            throwExceptionIfStreamFailedAfterReadingInputData(stream, readerParams.getColumn());
+            data += extraData;
+            if (!isThereAnyFurtherEscapeSymbols(stream, readerParams.getEscapeSymbol())) {
+                break;
             }
         }
     }

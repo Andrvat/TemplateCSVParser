@@ -32,11 +32,11 @@ namespace CSVParser {
         unsigned int csvLinesToSkipNumber_ = CSVParser::DEFAULT_LINES_TO_SKIP_NUMBER;
 
         void skipLines() {
-            std::string temporaryString;
-            unsigned int currentLine = csvLinesToSkipNumber_;
-            while (currentLine != 0) {
-                std::getline(csvInputStream_, temporaryString);
-                --currentLine;
+            std::string saveCurrentString;
+            unsigned int currentLineNumber = csvLinesToSkipNumber_;
+            while (currentLineNumber != 0) {
+                std::getline(csvInputStream_, saveCurrentString);
+                --currentLineNumber;
             }
         }
 
@@ -57,13 +57,99 @@ namespace CSVParser {
         class iterator : public std::iterator<std::input_iterator_tag, std::tuple<Args...>> {
         private:
             std::ifstream &itInputStream_;
-            bool itEndOfFile_ = false;
             std::tuple<Args...> *itTuples_ = nullptr;
             unsigned int itCurrentRow_;
             std::string itCurrentLine_;
             char itDelimiter_;
             char itEscapeSymbol_;
             std::streampos itPos_;
+
+        public:
+            friend class CSVTupleParser<Args...>;
+
+            iterator(std::ifstream &itInputStream, const unsigned int row,
+                     const char delimiter, const char escapeSymbol, const std::streampos streamPosition) :
+                    itInputStream_(itInputStream),
+                    itCurrentRow_(row),
+                    itDelimiter_(delimiter),
+                    itEscapeSymbol_(escapeSymbol),
+                    itPos_(streamPosition) {
+
+                itTuples_ = new std::tuple<Args...>;
+                if (!isCsvInputStreamReachedEndOfFile()) {
+                    readNextTuple();
+                }
+            }
+
+            ~iterator() {
+                delete itTuples_;
+            }
+
+            iterator &operator++() {
+                if (!isCsvInputStreamReachedEndOfFile()) {
+                    readNextTuple();
+                }
+                return *this;
+            }
+
+            bool operator==(const iterator &other) const {
+                if (other.isCsvInputStreamReachedEndOfFile() && this->isCsvInputStreamReachedEndOfFile()) {
+                    return true;
+                }
+                return itCurrentLine_ == other.itCurrentLine_;
+            }
+
+            bool operator!=(const iterator &other) const {
+                return !(*this == other);
+            }
+
+            typename iterator::reference operator*() const {
+                return *itTuples_;
+            }
+
+        private:
+            void readNextTuple() {
+                try {
+                    readNextFileRowToCurrentLine();
+                    saveStreamPosition();
+                    std::istringstream stringStream(itCurrentLine_);
+                    setStringStreamLocateParams(stringStream);
+                    *itTuples_ = TupleOperators::getCsvFileCurrentRowsTuple<Args...>
+                            (stringStream, itEscapeSymbol_, itDelimiter_);
+                    ++itCurrentRow_;
+                } catch (CSVParserException &exception) {
+                    switch (exception.getErrorType()) {
+                        case ExceptionType::InvalidData:
+                            printAboutInvalidDataFromException(exception);
+                            throwRuntimeExceptionToStopProgram();
+                            break;
+                        case ExceptionType::DataUnderflow:
+                            printAboutDataUnderflowFromException(exception);
+                            throwRuntimeExceptionToStopProgram();
+                            break;
+                        case ExceptionType::DataOverflow:
+                            printWarningAboutDataOverflow(exception);
+                            continueIterations();
+                            break;
+                    }
+                }
+            }
+
+            void continueIterations() {
+                ++itCurrentRow_;
+                ++(*this);
+            }
+
+            void readNextFileRowToCurrentLine() {
+                itInputStream_.clear();
+                itInputStream_.seekg(itPos_);
+                itInputStream_ >> itCurrentLine_;
+                itPos_ = itInputStream_.tellg();
+            }
+
+            void saveStreamPosition() {
+                itPos_ = itInputStream_.tellg();
+            }
 
             void setStringStreamLocateParams(std::istringstream &stream) {
                 std::locale loc(std::locale::classic(), new CSVParserCType(itDelimiter_));
@@ -103,103 +189,19 @@ namespace CSVParser {
                           << " " << exception.what() << std::endl;
             }
 
-            void readNextFileRowToCurrentLineAndSaveStreamPosition() {
-                itInputStream_.clear();
-                itInputStream_.seekg(itPos_);
-                itInputStream_ >> itCurrentLine_;
-                itPos_ = itInputStream_.tellg();
-            }
-
-            void continueIterations() {
-                ++itCurrentRow_;
-                ++(*this);
-            }
-
-            void readNextTuple() {
-                try {
-                    readNextFileRowToCurrentLineAndSaveStreamPosition();
-                    std::istringstream stringStream(itCurrentLine_);
-                    setStringStreamLocateParams(stringStream);
-                    *itTuples_ = TupleOperators::getCsvFileCurrentRowsTuple<Args...>(stringStream, itEscapeSymbol_, itDelimiter_);
-                    ++itCurrentRow_;
-                } catch (CSVParserException &exception) {
-                    switch (exception.getErrorType()) {
-                        case ExceptionType::InvalidData:
-                            printAboutInvalidDataFromException(exception);
-                            throwRuntimeExceptionToStopProgram();
-                            break;
-                        case ExceptionType::DataUnderflow:
-                            printAboutDataUnderflowFromException(exception);
-                            throwRuntimeExceptionToStopProgram();
-                            break;
-                        case ExceptionType::DataOverflow:
-                            printWarningAboutDataOverflow(exception);
-                            continueIterations();
-                            break;
-                    }
-                }
-            }
-
             [[nodiscard]] bool isCsvInputStreamReachedEndOfFile() const {
                 return itPos_ == EOF;
             }
 
-        public:
-            friend class CSVTupleParser<Args...>;
-
-            iterator(std::ifstream &itInputStream, const bool itEndOfFile, const unsigned int row,
-                     const char delimiter, const char escapeSymbol, const std::streampos streamPosition) :
-                    itInputStream_(itInputStream),
-                    itEndOfFile_(itEndOfFile),
-                    itCurrentRow_(row),
-                    itDelimiter_(delimiter),
-                    itEscapeSymbol_(escapeSymbol),
-                    itPos_(streamPosition) {
-
-                itTuples_ = new std::tuple<Args...>;
-                if (isCsvInputStreamReachedEndOfFile()) {
-                    itEndOfFile_ = true;
-                    return;
-                }
-                readNextTuple();
-            }
-
-            ~iterator() {
-                delete itTuples_;
-            }
-
-            iterator &operator++() {
-                if (isCsvInputStreamReachedEndOfFile()) {
-                    itEndOfFile_ = true;
-                    return *this;
-                }
-                readNextTuple();
-                return *this;
-            }
-
-            bool operator==(const iterator &other) const {
-                if (other.itEndOfFile_ && this->itEndOfFile_) {
-                    return true;
-                }
-                return itCurrentLine_ == other.itCurrentLine_;
-            }
-
-            bool operator!=(const iterator &other) const {
-                return !(*this == other);
-            }
-
-            typename iterator::reference operator*() const {
-                return *itTuples_;
-            }
         };
 
         iterator begin() {
-            return iterator(csvInputStream_, false, getStartingRowsForIterationNumber(),
+            return iterator(csvInputStream_, getStartingRowsForIterationNumber(),
                             csvDelimiter_, csvEscapeSymbol_, csvInputStream_.tellg());
         }
 
         iterator end() {
-            return iterator(csvInputStream_, true, UINT_MAX, csvDelimiter_, csvEscapeSymbol_, EOF);
+            return iterator(csvInputStream_, UINT_MAX, csvDelimiter_, csvEscapeSymbol_, EOF);
         }
     };
 

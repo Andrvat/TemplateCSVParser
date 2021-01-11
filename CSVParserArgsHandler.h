@@ -8,7 +8,7 @@
 
 namespace CSVParser {
 
-    enum class CSVParserConfigsArgumentsAmount {
+    enum CSVParserConfigsArgumentsAmount {
         NO_SPECIFIED_ALL_FEATURES = 2,
         SPECIFIED_LINES_TO_SKIP_NUMBER = 3,
         SPECIFIED_DELIMITER_AND_LINES_TO_SKIP = 4,
@@ -51,12 +51,13 @@ namespace CSVParser {
         class DataValidator {
         public:
             static bool isArgumentsAmountOneOfConstArgsValues(const int value) {
-                return value == static_cast<int>(CSVParserConfigsArgumentsAmount::NO_SPECIFIED_ALL_FEATURES) ||
-                       value == static_cast<int>(CSVParserConfigsArgumentsAmount::SPECIFIED_LINES_TO_SKIP_NUMBER) ||
-                       value ==
-                       static_cast<int>(CSVParserConfigsArgumentsAmount::SPECIFIED_DELIMITER_AND_LINES_TO_SKIP) ||
-                       value ==
-                       static_cast<int>(CSVParserConfigsArgumentsAmount::SPECIFIED_DELIMITER_LINES_TO_SKIP_AND_ESCAPE_SYMBOL);
+                for (size_t enumCurrentValue = CSVParserConfigsArgumentsAmount::NO_SPECIFIED_ALL_FEATURES;
+                     enumCurrentValue != CSVParserConfigsArgumentsAmount::INVALID_ARGUMENTS; enumCurrentValue++) {
+                    if (value == enumCurrentValue) {
+                        return true;
+                    }
+                }
+                return false;
             }
 
             static bool isStringValueDigit(const std::string &stringNumber) {
